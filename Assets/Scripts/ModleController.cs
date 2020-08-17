@@ -23,13 +23,13 @@ public class ModleController : MonoBehaviour
         switch (state)
         {
             case AniState.Idle:
-                aniName = "Idle";
+                aniName = "Stay";
                 break;
             case AniState.GetTicket:
-                aniName = "GetTicket";
+                aniName = "Give";
                 break;
             case AniState.NotGetTicket:
-                aniName = "NotGetTicket";
+                aniName = "Take 001";
                 break;
             default:
                 break;
@@ -66,6 +66,11 @@ public class ModleController : MonoBehaviour
             SetAniState(AniState.GetTicket);
             mIsHitModel = true;
         }
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            SetAniState(AniState.NotGetTicket);
+            mIsHitModel = true;
+        }
 
         if (mIsHitModel || Input.touchCount == 0)
             return;
@@ -80,6 +85,7 @@ public class ModleController : MonoBehaviour
                 {
                     GetCoupon();
                     mIsHitModel = true;
+                    PlaneManager.Instance.SetClickModelState(false);
                 }
             }
         }

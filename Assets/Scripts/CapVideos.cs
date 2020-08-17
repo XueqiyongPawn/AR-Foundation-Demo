@@ -15,14 +15,33 @@ public class CapVideos : MonoBehaviour
     public Camera[] _camere;
     public AudioSource audioSource;
 
+    [HideInInspector]
     public bool isRecording;
 
     public static CapVideos Instance;
+    [HideInInspector]
+    public string lastVideoPath;
+
+    private string sdPath = "/storage/emulated/0/DCIM/WanXiang/";
+    private string videoFloder = "Video/";
+
     // Start is called before the first frame update
     private void Awake()
     {
         Instance = this;
         //Mvc.MvcTool.addNoticeListener(MessageKeys.RecVideo,RecVideo);
+    }
+    private void CheckPath()
+    {
+        if (!Directory.Exists(sdPath))
+        {
+            Directory.CreateDirectory(sdPath);
+        }
+
+        if (!Directory.Exists(string.Format("{0}{1}", sdPath, videoFloder)))
+        {
+            Directory.CreateDirectory(string.Format("{0}{1}", sdPath, videoFloder));
+        }
     }
 
     private void OnDestroy()
@@ -44,97 +63,107 @@ public class CapVideos : MonoBehaviour
 
     // Update is called once per frame
     [Header("Recording")]
-        private int videoWidth = Screen.width;
-        private int videoHeight = Screen.height;
+    private int videoWidth = Screen.width;
+    private int videoHeight = Screen.height;
 
-        [Header("Microphone")]
-        public bool recordMicrophone;
-        public AudioSource microphoneSource;
+    [Header("Microphone")]
+    public bool recordMicrophone;
+    public AudioSource microphoneSource;
 
-        private MP4Recorder videoRecorder;
-        private IClock recordingClock;
-        private CameraInput cameraInput;
-        private AudioInput audioInput;
+    private MP4Recorder videoRecorder;
+    private IClock recordingClock;
+    private CameraInput cameraInput;
+    private AudioInput audioInput;
 
-        public void StartRecording () {            
-            Debug.Log("StartRecording------");
-            // Start recording
-            recordingClock = new RealtimeClock();
-            videoRecorder = new MP4Recorder(
-                videoWidth,
-                videoHeight,
-                30,
-                recordMicrophone ? AudioSettings.outputSampleRate : 0,
-                recordMicrophone ? (int)AudioSettings.speakerMode : 0,
-                OnReplay
-            );
-            
-            // Create recording inputs
-            cameraInput = new CameraInput(videoRecorder, recordingClock, _camere);
-            if (recordMicrophone) {
-                StartMicrophone();
-                audioInput = new AudioInput(videoRecorder, recordingClock, microphoneSource, true);
-            }
+    public void StartRecording()
+    {
+        Debug.Log("StartRecording------");
+        // Start recording
+        recordingClock = new RealtimeClock();
+        videoRecorder = new MP4Recorder(
+            videoWidth,
+            videoHeight,
+            30,
+            recordMicrophone ? AudioSettings.outputSampleRate : 0,
+            recordMicrophone ? (int)AudioSettings.speakerMode : 0,
+            OnReplay
+        );
 
-            isRecording = true;
-            //Mvc.MvcTool.sendNotice(MessageKeys.ChangeRecState,isRecording);
+        // Create recording inputs
+        cameraInput = new CameraInput(videoRecorder, recordingClock, _camere);
+        if (recordMicrophone)
+        {
+            StartMicrophone();
+            audioInput = new AudioInput(videoRecorder, recordingClock, microphoneSource, true);
         }
 
-        private void StartMicrophone () {
-            #if !UNITY_WEBGL || UNITY_EDITOR // No `Microphone` API on WebGL :(
-            // Create a microphone clip
-            microphoneSource.clip = Microphone.Start(null, true, 60, 48000);
-            while (Microphone.GetPosition(null) <= 0) ;
-            // Play through audio source
-            microphoneSource.timeSamples = Microphone.GetPosition(null);
-            microphoneSource.loop = true;
-            microphoneSource.Play();
-            #endif
+        isRecording = true;
+        //Mvc.MvcTool.sendNotice(MessageKeys.ChangeRecState,isRecording);
+    }
+
+    private void StartMicrophone()
+    {
+#if !UNITY_WEBGL || UNITY_EDITOR // No `Microphone` API on WebGL :(
+        // Create a microphone clip
+        microphoneSource.clip = Microphone.Start(null, true, 60, 48000);
+        while (Microphone.GetPosition(null) <= 0) ;
+        // Play through audio source
+        microphoneSource.timeSamples = Microphone.GetPosition(null);
+        microphoneSource.loop = true;
+        microphoneSource.Play();
+#endif
+    }
+
+    public void StopRecording()
+    {
+        Debug.Log("StopRecording------");
+        isRecording = false;
+        // Stop the recording inputs
+        if (recordMicrophone)
+        {
+            StopMicrophone();
+            audioInput.Dispose();
         }
+        cameraInput.Dispose();
+        // Stop recording
+        videoRecorder.Dispose();
+        
+        //Mvc.MvcTool.sendNotice(MessageKeys.ChangeRecState,isRecording);
 
-        public void StopRecording () {
-            Debug.Log("StopRecording------");
+    }
 
-            // Stop the recording inputs
-            if (recordMicrophone) {
-                StopMicrophone();
-                audioInput.Dispose();
-            }
-            cameraInput.Dispose();
-            // Stop recording
-            videoRecorder.Dispose();
-            isRecording = false;
-            //Mvc.MvcTool.sendNotice(MessageKeys.ChangeRecState,isRecording);
+    private void StopMicrophone()
+    {
+#if !UNITY_WEBGL || UNITY_EDITOR
+        Microphone.End(null);
+        microphoneSource.Stop();
+#endif
+    }
 
-        }
-
-        private void StopMicrophone () {
-            #if !UNITY_WEBGL || UNITY_EDITOR
-            Microphone.End(null);
-            microphoneSource.Stop();
-            #endif
-        }
-
-        private void OnReplay (string path) {
-            Debug.Log("Saved recording to: "+path);
-
-            // Playback the video
-            #if UNITY_EDITOR
-			EditorUtility.OpenWithDefaultApp(path);
-            #elif UNITY_IOS
+    private void OnReplay(string path)
+    {
+        Debug.Log("Saved recording to: " + path);
+        lastVideoPath = path;
+        PhotoAndVideoManager.Instance.ShowPhotoSave(null);
+        
+        return;
+        // Playback the video
+#if UNITY_EDITOR
+        EditorUtility.OpenWithDefaultApp(path);
+#elif UNITY_IOS
             Handheld.PlayFullScreenMovie("file://" + path);
-            #elif UNITY_ANDROID
+#elif UNITY_ANDROID
             //OriginBridge.CallJaveMethod(OriginBridge.md_shareImageTo,(int)SharePlatform.system,path);
             Handheld.PlayFullScreenMovie(path);
-            #endif
-        }
-    
+#endif
+    }
+
     string GetCurTime()
     {
         return DateTime.Now.Year.ToString() + DateTime.Now.Month.ToString() + DateTime.Now.Day.ToString()
                + DateTime.Now.Hour.ToString() + DateTime.Now.Minute.ToString() + DateTime.Now.Second.ToString();
     }
-    
+
     public static void CopyFile(string soucre, string target, System.Action<String> _OnCopyComplete)
     {
         using (FileStream fsRead = new FileStream(soucre, FileMode.Open, FileAccess.Read))
@@ -145,7 +174,7 @@ public class CapVideos : MonoBehaviour
                 while (true)
                 {
                     int r = fsRead.Read(buffer, 0, buffer.Length);
-                    if (r == 0) break;                            
+                    if (r == 0) break;
                     fsWrite.Write(buffer, 0, r);
                 }
             }
@@ -153,5 +182,5 @@ public class CapVideos : MonoBehaviour
 
         if (null != _OnCopyComplete) _OnCopyComplete(soucre);
     }
-    
+
 }

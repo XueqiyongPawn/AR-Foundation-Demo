@@ -22,7 +22,7 @@ public unsafe class ScreenShootManager : MonoBehaviour
     private byte[] imageData;
     GameObject canvas;
 
-    private string sdPath = "/storage/emulated/0/";
+    private string sdPath = "/storage/emulated/0/DCIM/";
     private string floder = "WanXiang/";
     private string Screenfloder = "Screenshots/";
     private string fileName;
@@ -154,7 +154,7 @@ public unsafe class ScreenShootManager : MonoBehaviour
 
     void AndroidSaveImage(byte[] data)
     {
-        CheckPath();
+        //CheckPath();
         fileName = GetTimeStr();
         File.WriteAllBytes(GetTmpPath(),data);
     }

@@ -16,11 +16,17 @@ public class PhotoAndVideoManager : MonoBehaviour
     public Sprite VideoModelNotSelectedSprite;
     public Sprite VideoModelSelectedSprite;
 
+    public GameObject Btns;
     public GameObject PhotoSavePanel;
     public Image PhotoSavePreviewImg;
+    public GameObject VideoPreview;
+    public GameObject SaveSuccessTip;
 
     public static PhotoAndVideoManager Instance;
+
+    private bool mIsPhotoModel = false;
     
+
     // Start is called before the first frame update
     void Start()
     {
@@ -31,7 +37,7 @@ public class PhotoAndVideoManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     public void PhotoModelClick()
@@ -40,15 +46,21 @@ public class PhotoAndVideoManager : MonoBehaviour
         {
             return;
         }
+        mIsPhotoModel = true;
         PhotoModelImg.sprite = PhotoModelSelectedSprite;
         TakePhotoBtn.SetActive(true);
         VideoModelImg.sprite = VideoModelNotSelectedSprite;
         TakeVideoBtn.SetActive(false);
-        
+
     }
 
     public void VideoModelClick()
     {
+        if (CapVideos.Instance.isRecording)
+        {
+            return;
+        }
+        mIsPhotoModel = false;
         PhotoModelImg.sprite = PhotoModelNotSelectedSprite;
         TakePhotoBtn.SetActive(false);
         VideoModelImg.sprite = VideoModelSelectedSprite;
@@ -56,38 +68,94 @@ public class PhotoAndVideoManager : MonoBehaviour
     }
     public void TakePhotoClick()
     {
+        StartCoroutine(TakePhoto());
+    }
+    private IEnumerator TakePhoto()
+    {
+        SetBtnState(TakePhotoBtn, false);
+        yield return new WaitForSeconds(0.1f);
+        SetBtnState(TakePhotoBtn, true);
         ScreenShootManager.Instance.SceenShootBtnClick();
     }
+
+    private void SetBtnState(GameObject g, bool isShow)
+    {
+        Color color = g.GetComponent<Image>().color;
+        if (isShow)
+        {
+            color.a = 1;
+        }
+        else
+        {
+            color.a = 0;
+        }
+        g.GetComponent<Image>().color = color;
+    }
+
 
     public void TakeVideoClick()
     {
         CapVideos.Instance.RecVideo();
         if (CapVideos.Instance.isRecording)
         {
-
+            StartCoroutine(TakeVideoAni());
         }
-        else
-        { 
+    }
+
+    private IEnumerator TakeVideoAni()
+    {
+        while (CapVideos.Instance.isRecording)
+        {
+            SetBtnState(TakeVideoBtn, TakeVideoBtn.GetComponent<Image>().color.a == 0 ? true : false);
+            
+            yield return new WaitForSeconds(0.2f);
+        }
+        SetBtnState(TakeVideoBtn, true);
+    }
+
+
+
+    public void Save()
+    {
+        if (mIsPhotoModel)
+        {
+            //ScreenShootManager.Instance.SaveBtnClick();
+        }
+        PhotoSavePanel.SetActive(false);
+        Btns.SetActive(true);
+        SaveSuccessTip.SetActive(true);
+    }
+
+    public void CancelSave()
+    {
+        if (mIsPhotoModel)
+        {
+            ScreenShootManager.Instance.CancelSaveClick();
+        }
+        PhotoSavePanel.SetActive(false);
+        Btns.SetActive(true);
         
-        }
-    }
-
-    public void SavePhoto()
-    {
-        ScreenShootManager.Instance.SaveBtnClick();
-        PhotoSavePanel.SetActive(false);
-    }
-
-    public void CancelPhotoSave()
-    {
-        ScreenShootManager.Instance.CancelSaveClick();
-        PhotoSavePanel.SetActive(false);
     }
 
     public void ShowPhotoSave(Sprite sprite)
     {
+        Btns.SetActive(false);
         PhotoSavePanel.SetActive(true);
-        PhotoSavePreviewImg.sprite = sprite;
+        if (mIsPhotoModel)
+        {
+            PhotoSavePreviewImg.gameObject.SetActive(true);
+            VideoPreview.SetActive(false);
+            SaveSuccessTip.SetActive(false);
+            PhotoSavePreviewImg.sprite = sprite;
+        }
+        else
+        {
+            PhotoSavePreviewImg.gameObject.SetActive(false);
+            VideoPreview.SetActive(true);
+            SaveSuccessTip.SetActive(false);
+            VideoPreview.GetComponent<PlayVideo>().Play(CapVideos.Instance.lastVideoPath);
+        }
+
     }
-    
+
 }

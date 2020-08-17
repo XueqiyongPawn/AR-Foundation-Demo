@@ -5,6 +5,7 @@ using UnityEngine.XR.ARFoundation;
 
 public class PlaneManager : MonoBehaviour
 {
+    public static PlaneManager Instance;
     private ARPlaneManager mARPlaneManger;
     private List<ARPlane> mPlanes;
     public GameObject ModelPrefab;
@@ -13,9 +14,17 @@ public class PlaneManager : MonoBehaviour
     public GameObject ModelClone;
     private bool mIsClone = false;
     private Vector3 mModelParentLasetForward;
+
+    [HideInInspector]
+    public bool IsStartScan = false;
+    private float mScanTime = 0;
+
+    public GameObject MovePhoneTip;
+    public GameObject ClickModelTip;
     // Start is called before the first frame update
     void Start()
     {
+        Instance = this;
         mPlanes = new List<ARPlane>();
         mARPlaneManger = this.GetComponent<ARPlaneManager>();
         mARPlaneManger.planesChanged += OnPlaneChanged;
@@ -36,6 +45,15 @@ public class PlaneManager : MonoBehaviour
         {
 
         }
+        if (IsStartScan && !mIsClone)
+        {
+            mScanTime += Time.deltaTime;
+            if (mScanTime > 5f)
+            {
+                IsStartScan = false;
+                MovePhoneTip.SetActive(true);
+            }
+        }
     }
 
     private void OnPlaneChanged(ARPlanesChangedEventArgs arg)
@@ -50,15 +68,29 @@ public class PlaneManager : MonoBehaviour
             arg.added[i].gameObject.SetActive(false);
         }
         mARPlaneManger.planesChanged -= OnPlaneChanged;
+        mARPlaneManger.enabled = false;
+        MovePhoneTip.SetActive(false);
         
         PlaceModel(mPlanes[0]);
     }
 
+    public void SetClickModelState(bool state)
+    {
+        ClickModelTip.SetActive(state);
+    }
     private void PlaceModel(ARPlane plane)
     {
         Debug.Log("start palce model");
 
         ModelParent.position = plane.transform.position;
+        //强制离人1M
+        Vector3 cameraPos = Camera.main.transform.position;
+        Vector3 modelParentPos = ModelParent.position;
+        cameraPos.y = modelParentPos.y;
+         float dis = Vector3.Distance(cameraPos, modelParentPos);
+        ModelParent.position += (1.3f - dis)*(modelParentPos - cameraPos).normalized;
+
+
         Vector3 forward = Camera.main.transform.forward;
         forward.y = 0;
         ModelParent.forward = -forward.normalized;
@@ -68,6 +100,7 @@ public class PlaneManager : MonoBehaviour
         ModelClone.transform.SetParent(ModelParent);
         ModelClone.transform.localPosition = Vector3.zero;
         ModelClone.transform.localRotation = Quaternion.identity;
+        ModelClone.transform.localScale = Vector3.one * 0.375f;
 
         ModelParent.transform.localScale = Vector3.zero;
         StartCoroutine(BornAni());
@@ -83,6 +116,7 @@ public class PlaneManager : MonoBehaviour
             ModelParent.transform.localScale += addScale;
             yield return null;
         }
-        mARPlaneManger.enabled = false;
+        SetClickModelState(true);
+       
     }
 }

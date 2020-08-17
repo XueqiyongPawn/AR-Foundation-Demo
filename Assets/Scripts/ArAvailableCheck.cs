@@ -18,6 +18,8 @@ public class ArAvailableCheck : MonoBehaviour
 
     public GameObject UnsupportTip;
     public GameObject NotLocateTip;
+    public GameObject UnsupportTipBg;
+    public GameObject CloseArBtn;
     // Start is called before the first frame update
     void Start()
     {
@@ -34,16 +36,21 @@ public class ArAvailableCheck : MonoBehaviour
         if (ARSession.state == ARSessionState.Unsupported)
         {
             UnsupportTip.SetActive(true);
+            UnsupportTipBg.SetActive(true);
+            CloseArBtn.SetActive(false);
         }
         else
         {
             if (CheckPosAvailable())
             {
                 arSession.enabled = true;
+                PlaneManager.Instance.IsStartScan = true;
             }
             else
             {
                 NotLocateTip.SetActive(true);
+                UnsupportTipBg.SetActive(true);
+                CloseArBtn.SetActive(false);
             }
 
         }

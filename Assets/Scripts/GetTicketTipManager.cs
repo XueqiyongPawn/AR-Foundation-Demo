@@ -7,6 +7,8 @@ public class GetTicketTipManager : MonoBehaviour
 {
     public static GetTicketTipManager Instance;
     public Text TextTip;
+    public GameObject GetTicketTip;
+    public GameObject NotGetTicketTip;
     public GameObject WithCameraPanel;
     private bool isWebRequestSccess = false;
     // Start is called before the first frame update
@@ -18,7 +20,15 @@ public class GetTicketTipManager : MonoBehaviour
 
     public void SetTicketName(string ticketName)
     {
-        TextTip.text = "恭喜您获得\n" + ticketName + "\n优惠券！";
+        if (ticketName == "None")
+        {
+            NotGetTicketTip.SetActive(true);
+        }
+        else
+        {
+            GetTicketTip.SetActive(true);
+            TextTip.text = ticketName;
+        }
         isWebRequestSccess = true;
         this.gameObject.SetActive(true);
     }
